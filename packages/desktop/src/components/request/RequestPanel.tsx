@@ -16,10 +16,11 @@ import { HTTP_METHODS, METHOD_COLORS, BODY_TYPES, DEFAULT_HEADERS } from '@/lib/
 import { formatJson, getJsonError } from '@/lib/json';
 import * as api from '@/lib/tauri';
 import type { HttpMethod, BodyType, KeyValue } from '@/types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Send, X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { Textarea } from '@/components/ui/textarea';
+
+type RequestTab = 'params' | 'headers' | 'body';
 
 export function RequestPanel() {
   const { tabs, activeTabId, updateTabState, setResponse, setTabLoading, loadingTabs, markClean } = useTabStore();
@@ -29,6 +30,7 @@ export function RequestPanel() {
   const activeTab = tabs.find(t => t.id === activeTabId);
   const isLoading = activeTabId ? loadingTabs.has(activeTabId) : false;
   const [showDefaultHeaders, setShowDefaultHeaders] = useState(false);
+  const [activeRequestTab, setActiveRequestTab] = useState<RequestTab>('params');
 
   const handleMethodChange = useCallback((value: string | null) => {
     if (activeTabId && value) {
@@ -201,6 +203,9 @@ export function RequestPanel() {
   const { method, url, params, headers, body_type, body_content } = activeTab.state;
   const jsonError = body_type === 'json' && body_content ? getJsonError(body_content) : null;
 
+  const paramsCount = params.filter(p => p.enabled && p.key).length;
+  const headersCount = headers.filter(h => h.enabled && h.key).length;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* URL Bar */}
@@ -259,148 +264,203 @@ export function RequestPanel() {
         )}
       </div>
 
-      {/* Tabs for Params, Headers, Body */}
-      <Tabs defaultValue="params" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-3 mt-2 w-fit">
-          <TabsTrigger value="params" className="text-xs">
-            Params {params.filter(p => p.enabled && p.key).length > 0 && (
-              <span className="ml-1 text-muted-foreground">({params.filter(p => p.enabled && p.key).length})</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="headers" className="text-xs">
-            Headers {headers.filter(h => h.enabled && h.key).length > 0 && (
-              <span className="ml-1 text-muted-foreground">({headers.filter(h => h.enabled && h.key).length})</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="body" className="text-xs">
-            Body
-            {jsonError && <AlertCircle className="ml-1 h-3 w-3 text-destructive" />}
-          </TabsTrigger>
-        </TabsList>
+      {/* Postman-style Tab Bar */}
+      <div className="flex items-center border-b border-border bg-muted/30">
+        <button
+          type="button"
+          onClick={() => setActiveRequestTab('params')}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            activeRequestTab === 'params'
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+          )}
+        >
+          Params
+          {paramsCount > 0 && (
+            <span className="ml-1.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {paramsCount}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveRequestTab('headers')}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            activeRequestTab === 'headers'
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+          )}
+        >
+          Headers
+          {headersCount > 0 && (
+            <span className="ml-1.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {headersCount}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveRequestTab('body')}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center",
+            activeRequestTab === 'body'
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+          )}
+        >
+          Body
+          {jsonError && <AlertCircle className="ml-1.5 h-3.5 w-3.5 text-destructive" />}
+        </button>
+      </div>
 
-        <TabsContent value="params" className="flex-1 overflow-auto m-0 p-3">
-          <KeyValueEditor
-            items={params}
-            onChange={handleParamsChange}
-            keyPlaceholder="Parameter name"
-            valuePlaceholder="Value"
-          />
-        </TabsContent>
-
-        <TabsContent value="headers" className="flex-1 overflow-auto m-0 p-3">
-          <KeyValueEditor
-            items={headers}
-            onChange={handleHeadersChange}
-            keyPlaceholder="Header name"
-            valuePlaceholder="Value"
-          />
-          
-          {/* Default Headers - collapsible */}
-          <div className="mt-4 border-t border-border pt-3">
-            <button
-              type="button"
-              onClick={() => setShowDefaultHeaders(!showDefaultHeaders)}
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
-            >
-              {showDefaultHeaders ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
+      {/* Body Type Selector - shown below tabs when Body is active */}
+      {activeRequestTab === 'body' && (
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-background">
+          {BODY_TYPES.map(bt => (
+            <label
+              key={bt.value}
+              className={cn(
+                "flex items-center gap-1.5 cursor-pointer text-sm",
+                body_type === bt.value ? "text-foreground" : "text-muted-foreground"
               )}
-              <span>Default Headers ({DEFAULT_HEADERS.length})</span>
-            </button>
-            
-            {showDefaultHeaders && (
-              <div className="mt-2 space-y-1">
-                {DEFAULT_HEADERS.map((header, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 text-xs font-mono text-muted-foreground py-1"
-                  >
-                    <span className="w-40 truncate">{header.key}</span>
-                    <span className="text-muted-foreground/50">:</span>
-                    <span className="flex-1 truncate">{header.value}</span>
-                  </div>
-                ))}
-                <p className="text-[10px] text-muted-foreground/70 mt-2">
-                  These headers are automatically included in all requests unless overridden above.
-                </p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="body" className="flex-1 overflow-hidden m-0 flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-            <Select value={body_type} onValueChange={handleBodyTypeChange}>
-              <SelectTrigger className="w-40 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BODY_TYPES.map(bt => (
-                  <SelectItem key={bt.value} value={bt.value}>
-                    {bt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {body_type === 'json' && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8"
-                  onClick={handleFormatJson}
-                  disabled={!body_content}
-                >
-                  Format
-                </Button>
-                {jsonError && (
-                  <span className="text-xs text-destructive truncate flex-1">
-                    {jsonError}
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-
-          {body_type === 'none' ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-              This request does not have a body
+            >
+              <input
+                type="radio"
+                name="bodyType"
+                value={bt.value}
+                checked={body_type === bt.value}
+                onChange={() => handleBodyTypeChange(bt.value)}
+                className="w-3.5 h-3.5 accent-primary"
+              />
+              {bt.label}
+            </label>
+          ))}
+          
+          {body_type === 'json' && (
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleFormatJson}
+                disabled={!body_content}
+              >
+                Format
+              </Button>
+              {jsonError && (
+                <span className="text-xs text-destructive truncate max-w-[200px]">
+                  {jsonError}
+                </span>
+              )}
             </div>
-          ) : body_type === 'form-data' || body_type === 'x-www-form-urlencoded' ? (
-            <div className="flex-1 overflow-auto p-3">
+          )}
+        </div>
+      )}
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Params Tab */}
+        {activeRequestTab === 'params' && (
+          <div className="h-full">
+            <KeyValueEditor
+              items={params}
+              onChange={handleParamsChange}
+              keyPlaceholder="Parameter name"
+              valuePlaceholder="Value"
+            />
+          </div>
+        )}
+
+        {/* Headers Tab */}
+        {activeRequestTab === 'headers' && (
+          <div className="h-full flex flex-col">
+            <div className="flex-1">
               <KeyValueEditor
-                items={body_content ? parseFormData(body_content) : []}
-                onChange={(items: KeyValue[]) => {
-                  const encoded = items
-                    .filter((i: KeyValue) => i.enabled && i.key)
-                    .map((i: KeyValue) => `${encodeURIComponent(i.key)}=${encodeURIComponent(i.value)}`)
-                    .join('&');
-                  if (activeTabId) {
-                    updateTabState(activeTabId, { body_content: encoded });
-                  }
-                }}
-                keyPlaceholder="Field name"
+                items={headers}
+                onChange={handleHeadersChange}
+                keyPlaceholder="Header name"
                 valuePlaceholder="Value"
               />
             </div>
-          ) : (
-            <div className="flex-1 p-3 overflow-hidden">
-              <Textarea
-                value={body_content}
-                onChange={handleBodyContentChange}
-                placeholder={body_type === 'json' ? '{\n  "key": "value"\n}' : 'Enter request body...'}
-                className={cn(
-                  'h-full resize-none font-mono text-sm',
-                  jsonError && 'border-destructive'
+            
+            {/* Default Headers - collapsible */}
+            <div className="border-t border-border p-3">
+              <button
+                type="button"
+                onClick={() => setShowDefaultHeaders(!showDefaultHeaders)}
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+              >
+                {showDefaultHeaders ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
                 )}
-              />
+                <span>Default Headers ({DEFAULT_HEADERS.length})</span>
+              </button>
+              
+              {showDefaultHeaders && (
+                <div className="mt-2 space-y-1">
+                  {DEFAULT_HEADERS.map((header, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 text-xs font-mono text-muted-foreground py-1"
+                    >
+                      <span className="w-40 truncate">{header.key}</span>
+                      <span className="text-muted-foreground/50">:</span>
+                      <span className="flex-1 truncate">{header.value}</span>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground/70 mt-2">
+                    These headers are automatically included in all requests unless overridden above.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </div>
+        )}
+
+        {/* Body Tab */}
+        {activeRequestTab === 'body' && (
+          <div className="h-full flex flex-col">
+            {body_type === 'none' ? (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                This request does not have a body
+              </div>
+            ) : body_type === 'form-data' || body_type === 'x-www-form-urlencoded' ? (
+              <div className="flex-1 overflow-auto">
+                <KeyValueEditor
+                  items={body_content ? parseFormData(body_content) : []}
+                  onChange={(items: KeyValue[]) => {
+                    const encoded = items
+                      .filter((i: KeyValue) => i.enabled && i.key)
+                      .map((i: KeyValue) => `${encodeURIComponent(i.key)}=${encodeURIComponent(i.value)}`)
+                      .join('&');
+                    if (activeTabId) {
+                      updateTabState(activeTabId, { body_content: encoded });
+                    }
+                  }}
+                  keyPlaceholder="Field name"
+                  valuePlaceholder="Value"
+                />
+              </div>
+            ) : (
+              <div className="flex-1 p-3 overflow-hidden">
+                <Textarea
+                  value={body_content}
+                  onChange={handleBodyContentChange}
+                  placeholder={body_type === 'json' ? '{\n  "key": "value"\n}' : 'Enter request body...'}
+                  className={cn(
+                    'h-full resize-none font-mono text-sm',
+                    jsonError && 'border-destructive'
+                  )}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
