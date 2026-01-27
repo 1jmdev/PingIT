@@ -23,6 +23,10 @@ pub fn run() {
             // Store database in app state
             app.manage(db);
             
+            // Maximize window on startup
+            let main_window = app.get_webview_window("main").unwrap();
+            main_window.maximize()?;
+            
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

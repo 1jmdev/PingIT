@@ -43,7 +43,7 @@ export function getStatusColor(status: number): string {
 }
 
 export const DEFAULT_HEADERS: KeyValue[] = [
-  { key: 'User-Agent', value: 'Postman/1.0', enabled: true },
+  { key: 'User-Agent', value: 'PingIT/1.0', enabled: true },
   { key: 'Accept', value: '*/*', enabled: true },
   { key: 'Accept-Encoding', value: 'gzip, deflate, br', enabled: true },
   { key: 'Connection', value: 'keep-alive', enabled: true },

@@ -9,7 +9,7 @@ pub struct Database {
 impl Database {
     pub fn new(app_data_dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(&app_data_dir).ok();
-        let db_path = app_data_dir.join("postman.db");
+        let db_path = app_data_dir.join("pingit.db");
         let conn = Connection::open(db_path)?;
 
         let db = Database {

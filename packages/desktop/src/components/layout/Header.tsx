@@ -20,7 +20,7 @@ export function Header() {
             <PanelLeft className="h-4 w-4" />
           </Button>
         )}
-        <span className="text-sm font-semibold">Postman</span>
+        <span className="text-sm font-semibold">PingIT</span>
       </div>
 
       <div className="flex items-center gap-1">
