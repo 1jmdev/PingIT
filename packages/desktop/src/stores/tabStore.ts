@@ -34,7 +34,7 @@ interface TabStore {
     headers: Array<{ key: string; value: string; enabled: boolean }> | null;
     body_type: string | null;
     body_content: string | null;
-  }) => Promise<Tab>;
+  }, response?: ResponseData | null) => Promise<Tab>;
 }
 
 const defaultTabState: TabState = {
@@ -107,21 +107,14 @@ export const useTabStore = create<TabStore>((set, get) => ({
   closeTab: async (tabId: string) => {
     const { tabs, activeTabId } = get();
     
-    if (tabs.length <= 1) {
-      // Don't close the last tab, just reset it
-      set(state => ({
-        tabs: state.tabs.map(t =>
-          t.id === tabId ? { ...t, state: defaultTabState } : t
-        ),
-      }));
-      return;
-    }
-
     const nextActiveId = await api.deleteTab(tabId);
+    const remainingTabs = tabs.filter(t => t.id !== tabId);
     
     set(state => ({
-      tabs: state.tabs.filter(t => t.id !== tabId),
-      activeTabId: activeTabId === tabId ? (nextActiveId ?? state.tabs[0]?.id ?? null) : activeTabId,
+      tabs: remainingTabs,
+      activeTabId: activeTabId === tabId 
+        ? (nextActiveId ?? remainingTabs[0]?.id ?? null) 
+        : activeTabId,
       responses: { ...state.responses, [tabId]: null },
     }));
   },
@@ -182,8 +175,8 @@ export const useTabStore = create<TabStore>((set, get) => ({
     });
   },
 
-  openRequest: async (workspaceId: string, request) => {
-    const state: TabState = {
+  openRequest: async (workspaceId: string, request, response?) => {
+    const tabState: TabState = {
       method: request.method,
       url: request.url,
       params: request.params ?? [],
@@ -193,11 +186,13 @@ export const useTabStore = create<TabStore>((set, get) => ({
       is_dirty: false,
     };
 
-    const newTab = await api.createTab(workspaceId, state);
+    const newTab = await api.createTab(workspaceId, tabState);
     
     set(state => ({
       tabs: [...state.tabs, newTab].slice(-MAX_TABS_IN_MEMORY),
       activeTabId: newTab.id,
+      // If response data is provided, store it
+      responses: response ? { ...state.responses, [newTab.id]: response } : state.responses,
     }));
 
     return newTab;

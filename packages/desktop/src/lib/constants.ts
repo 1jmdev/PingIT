@@ -44,7 +44,10 @@ export function getStatusColor(status: number): string {
 }
 
 export const DEFAULT_HEADERS: KeyValue[] = [
-  { key: 'Content-Type', value: 'application/json', enabled: true },
+  { key: 'User-Agent', value: 'Postman/1.0', enabled: true },
+  { key: 'Accept', value: '*/*', enabled: true },
+  { key: 'Accept-Encoding', value: 'gzip, deflate, br', enabled: true },
+  { key: 'Connection', value: 'keep-alive', enabled: true },
 ];
 
 export const EMPTY_KEY_VALUE: KeyValue = {

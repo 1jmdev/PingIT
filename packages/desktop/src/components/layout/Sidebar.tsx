@@ -36,7 +36,7 @@ import {
 export function Sidebar() {
   const { workspaces, activeWorkspaceId, setActiveWorkspace } = useWorkspaceStore();
   const { openRequest } = useTabStore();
-  const { historySearchQuery, setHistorySearchQuery, openWorkspaceDialog, openClearHistoryDialog } = useUIStore();
+  const { historySearchQuery, setHistorySearchQuery, historyRefreshTrigger, openWorkspaceDialog, openClearHistoryDialog } = useUIStore();
   const { toggleSidebar } = useSettingsStore();
   
   const [history, setHistory] = useState<SavedRequest[]>([]);
@@ -59,7 +59,7 @@ export function Sidebar() {
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [activeWorkspaceId, historySearchQuery]);
+  }, [activeWorkspaceId, historySearchQuery, historyRefreshTrigger]);
 
   useEffect(() => {
     loadHistory();
@@ -67,6 +67,17 @@ export function Sidebar() {
 
   const handleOpenRequest = async (request: SavedRequest) => {
     if (!activeWorkspaceId) return;
+    
+    // Build response data if available
+    const response = request.response_status != null ? {
+      status: request.response_status,
+      status_text: request.response_status_text ?? '',
+      headers: request.response_headers ?? [],
+      body: request.response_body ?? '',
+      time_ms: request.response_time_ms ?? 0,
+      size_bytes: request.response_size_bytes ?? 0,
+    } : null;
+    
     await openRequest(activeWorkspaceId, {
       method: request.method,
       url: request.url,
@@ -74,7 +85,7 @@ export function Sidebar() {
       headers: request.headers,
       body_type: request.body_type,
       body_content: request.body_content,
-    });
+    }, response);
   };
 
   const handleWorkspaceChange = (value: string | null) => {
@@ -115,7 +126,9 @@ export function Sidebar() {
       <div className="flex items-center gap-2 p-3 border-b border-border">
         <Select value={activeWorkspaceId ?? ''} onValueChange={handleWorkspaceChange}>
           <SelectTrigger className="flex-1 h-8">
-            <SelectValue placeholder="Select workspace" />
+            <SelectValue placeholder="Select workspace">
+              {activeWorkspace?.name ?? 'Select workspace'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {workspaces.map(w => (
@@ -127,10 +140,10 @@ export function Sidebar() {
         </Select>
         
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+          <DropdownMenuTrigger
+            className="inline-flex items-center justify-center h-8 w-8 shrink-0 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => openWorkspaceDialog('create')}>

@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTabStore } from '@/stores/tabStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useUIStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,21 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { HTTP_METHODS, METHOD_COLORS, BODY_TYPES } from '@/lib/constants';
+import { HTTP_METHODS, METHOD_COLORS, BODY_TYPES, DEFAULT_HEADERS } from '@/lib/constants';
 import { formatJson, getJsonError } from '@/lib/json';
 import * as api from '@/lib/tauri';
 import type { HttpMethod, BodyType, KeyValue } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Send, X, AlertCircle } from 'lucide-react';
+import { Send, X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { Textarea } from '@/components/ui/textarea';
 
 export function RequestPanel() {
   const { tabs, activeTabId, updateTabState, setResponse, setTabLoading, loadingTabs, markClean } = useTabStore();
   const { activeWorkspaceId } = useWorkspaceStore();
+  const { refreshHistory } = useUIStore();
   
   const activeTab = tabs.find(t => t.id === activeTabId);
   const isLoading = activeTabId ? loadingTabs.has(activeTabId) : false;
+  const [showDefaultHeaders, setShowDefaultHeaders] = useState(false);
 
   const handleMethodChange = useCallback((value: string | null) => {
     if (activeTabId && value) {
@@ -107,33 +110,41 @@ export function RequestPanel() {
     setResponse(activeTabId, null);
 
     try {
-      // Prepare headers - only include enabled ones
-      const enabledHeaders = headers.filter(h => h.enabled && h.key);
+      // Prepare headers - merge default headers with user headers
+      // User headers override default headers (case-insensitive)
+      const userHeaders = headers.filter(h => h.enabled && h.key);
+      const userHeaderKeys = new Set(userHeaders.map(h => h.key.toLowerCase()));
+      
+      // Add default headers that aren't overridden
+      const allHeaders = [
+        ...DEFAULT_HEADERS.filter(h => !userHeaderKeys.has(h.key.toLowerCase())),
+        ...userHeaders,
+      ];
       
       // Add Content-Type header if body type requires it
-      if (body_type === 'json' && !enabledHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
-        enabledHeaders.push({ key: 'Content-Type', value: 'application/json', enabled: true });
-      } else if (body_type === 'x-www-form-urlencoded' && !enabledHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
-        enabledHeaders.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded', enabled: true });
+      if (body_type === 'json' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
+        allHeaders.push({ key: 'Content-Type', value: 'application/json', enabled: true });
+      } else if (body_type === 'x-www-form-urlencoded' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
+        allHeaders.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded', enabled: true });
       }
 
       const response = await api.sendHttpRequest(activeTabId, {
         method,
         url,
-        headers: enabledHeaders,
+        headers: allHeaders,
         body_type,
         body_content: body_type !== 'none' ? body_content : null,
       });
 
       setResponse(activeTabId, response);
       
-      // Save to history
+      // Save to history (save user headers, not default headers)
       await api.createRequest({
         workspace_id: activeWorkspaceId,
         method,
         url,
         params: params.length > 0 ? params : null,
-        headers: enabledHeaders.length > 0 ? enabledHeaders : null,
+        headers: userHeaders.length > 0 ? userHeaders : null,
         body_type: body_type !== 'none' ? body_type : null,
         body_content: body_type !== 'none' ? body_content : null,
         response_status: response.status,
@@ -143,6 +154,9 @@ export function RequestPanel() {
         response_time_ms: response.time_ms,
         response_size_bytes: response.size_bytes,
       });
+      
+      // Refresh history to show new entry
+      refreshHistory();
       
       markClean(activeTabId);
     } catch (e) {
@@ -158,7 +172,7 @@ export function RequestPanel() {
     } finally {
       setTabLoading(activeTabId, false);
     }
-  }, [activeTabId, activeTab, activeWorkspaceId, setTabLoading, setResponse, markClean]);
+  }, [activeTabId, activeTab, activeWorkspaceId, setTabLoading, setResponse, markClean, refreshHistory]);
 
   const handleCancelRequest = useCallback(async () => {
     if (activeTabId) {
@@ -167,10 +181,19 @@ export function RequestPanel() {
     }
   }, [activeTabId, setTabLoading]);
 
-  if (!activeTab || !activeWorkspaceId) {
+  if (!activeWorkspaceId) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
-        No active request
+        No workspace selected
+      </div>
+    );
+  }
+
+  if (!activeTab) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+        <span className="text-sm">No open requests</span>
+        <span className="text-xs">Press Ctrl+T or click + to create a new request</span>
       </div>
     );
   }
@@ -271,6 +294,40 @@ export function RequestPanel() {
             keyPlaceholder="Header name"
             valuePlaceholder="Value"
           />
+          
+          {/* Default Headers - collapsible */}
+          <div className="mt-4 border-t border-border pt-3">
+            <button
+              type="button"
+              onClick={() => setShowDefaultHeaders(!showDefaultHeaders)}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              {showDefaultHeaders ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <span>Default Headers ({DEFAULT_HEADERS.length})</span>
+            </button>
+            
+            {showDefaultHeaders && (
+              <div className="mt-2 space-y-1">
+                {DEFAULT_HEADERS.map((header, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 text-xs font-mono text-muted-foreground py-1"
+                  >
+                    <span className="w-40 truncate">{header.key}</span>
+                    <span className="text-muted-foreground/50">:</span>
+                    <span className="flex-1 truncate">{header.value}</span>
+                  </div>
+                ))}
+                <p className="text-[10px] text-muted-foreground/70 mt-2">
+                  These headers are automatically included in all requests unless overridden above.
+                </p>
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="body" className="flex-1 overflow-hidden m-0 flex flex-col">
