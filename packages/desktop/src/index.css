@@ -215,3 +215,33 @@
   max-height: 0;
   transition: opacity 150ms ease-out, max-height 150ms ease-out;
 }
+
+/* Remove focus rings from all form inputs globally */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+[data-slot="input"]:focus,
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus,
+[data-slot="textarea"]:focus-visible,
+.cm-editor:focus,
+.cm-editor:focus-visible,
+.cm-content:focus,
+.cm-content:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-ring-color: transparent !important;
+}
+
+/* Override Tailwind focus-visible ring styles for inputs */
+input:focus-visible,
+textarea:focus-visible,
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus-visible {
+  border-color: var(--input) !important;
+}
+

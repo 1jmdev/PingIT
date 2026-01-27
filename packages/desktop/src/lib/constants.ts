@@ -12,7 +12,6 @@ export const HTTP_METHODS: HttpMethod[] = [
 
 export const BODY_TYPES: { value: BodyType; label: string }[] = [
   { value: 'none', label: 'None' },
-  { value: 'json', label: 'JSON' },
   { value: 'form-data', label: 'Form Data' },
   { value: 'x-www-form-urlencoded', label: 'x-www-form-urlencoded' },
   { value: 'raw', label: 'Raw' },

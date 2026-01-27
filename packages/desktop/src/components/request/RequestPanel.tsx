@@ -18,7 +18,7 @@ import * as api from '@/lib/tauri';
 import type { HttpMethod, BodyType, KeyValue } from '@/types';
 import { Send, X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
-import { Textarea } from '@/components/ui/textarea';
+import { CodeEditor } from '@/components/ui/code-editor';
 
 type RequestTab = 'params' | 'headers' | 'body';
 
@@ -40,7 +40,7 @@ export function RequestPanel() {
   const body_type = state?.body_type ?? 'none';
   const body_content = state?.body_content ?? '';
 
-  const jsonError = body_type === 'json' && body_content ? getJsonError(body_content) : null;
+  const jsonError = body_type === 'raw' && body_content ? getJsonError(body_content) : null;
   const paramsCount = params.filter(p => p.enabled && p.key).length;
   const headersCount = headers.filter(h => h.enabled && h.key).length;
 
@@ -114,7 +114,7 @@ export function RequestPanel() {
     const newBodyType = newType as BodyType;
     
     const formTypes = ['form-data', 'x-www-form-urlencoded'];
-    const textTypes = ['raw', 'json', 'xml', 'html', 'text'];
+    const textTypes = ['raw', 'xml', 'html', 'text'];
     
     const oldIsForm = formTypes.includes(oldType);
     const newIsForm = formTypes.includes(newBodyType);
@@ -127,12 +127,6 @@ export function RequestPanel() {
       body_content: shouldClear ? '' : activeTab.state.body_content 
     });
   }, [activeTabId, activeTab, updateTabState]);
-
-  const handleBodyContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (activeTabId) {
-      updateTabState(activeTabId, { body_content: e.target.value });
-    }
-  }, [activeTabId, updateTabState]);
 
   const handleFormDataChange = useCallback((items: KeyValue[]) => {
     if (!activeTabId) return;
@@ -168,7 +162,7 @@ export function RequestPanel() {
         ...userHeaders,
       ];
       
-      if (body_type === 'json' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
+      if (body_type === 'raw' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
         allHeaders.push({ key: 'Content-Type', value: 'application/json', enabled: true });
       } else if (body_type === 'x-www-form-urlencoded' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
         allHeaders.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded', enabled: true });
@@ -373,16 +367,15 @@ export function RequestPanel() {
             </label>
           ))}
           
-          {body_type === 'json' && (
+          {body_type === 'raw' && (
             <div className="flex items-center gap-2 ml-auto">
               <Button
-                variant="ghost"
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleFormatJson}
                 disabled={!body_content}
               >
-                Format
+                Beautify
               </Button>
               {jsonError && (
                 <span className="text-xs text-destructive truncate max-w-[200px]">
@@ -470,14 +463,15 @@ export function RequestPanel() {
               </div>
             ) : (
               <div className="flex-1 p-3 overflow-hidden">
-                <Textarea
+                <CodeEditor
                   value={body_content}
-                  onChange={handleBodyContentChange}
-                  placeholder={body_type === 'json' ? '{\n  "key": "value"\n}' : 'Enter request body...'}
-                  className={cn(
-                    'h-full resize-none font-mono text-sm',
-                    jsonError && 'border-destructive'
-                  )}
+                  onChange={(value) => {
+                    if (activeTabId) {
+                      updateTabState(activeTabId, { body_content: value });
+                    }
+                  }}
+                  placeholder={body_type === 'raw' ? '{\n  "key": "value"\n}' : 'Enter request body...'}
+                  hasError={!!jsonError}
                 />
               </div>
             )}
