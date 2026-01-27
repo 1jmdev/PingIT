@@ -2,11 +2,15 @@ import { useEffect } from 'react';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useTabStore } from '@/stores/tabStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { TabBar } from './TabBar';
 import { RequestPanel } from '@/components/request/RequestPanel';
 import { ResponsePanel } from '@/components/response/ResponsePanel';
+import { SettingsDialog } from '@/components/settings/SettingsDialog';
+import { WorkspaceDialog } from '@/components/settings/WorkspaceDialog';
+import { ClearHistoryDialog } from '@/components/settings/ClearHistoryDialog';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -17,6 +21,9 @@ export function AppLayout() {
   const { loadWorkspaces, activeWorkspaceId, isLoading: workspacesLoading } = useWorkspaceStore();
   const { loadTabs } = useTabStore();
   const { loadSettings, settings } = useSettingsStore();
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   useEffect(() => {
     loadSettings();
@@ -55,6 +62,11 @@ export function AppLayout() {
           </ResizablePanelGroup>
         </main>
       </div>
+      
+      {/* Dialogs */}
+      <SettingsDialog />
+      <WorkspaceDialog />
+      <ClearHistoryDialog />
     </div>
   );
 }
