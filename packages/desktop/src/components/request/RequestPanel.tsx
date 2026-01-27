@@ -32,6 +32,34 @@ export function RequestPanel() {
   const [showDefaultHeaders, setShowDefaultHeaders] = useState(false);
   const [activeRequestTab, setActiveRequestTab] = useState<RequestTab>('params');
 
+  const state = activeTab?.state;
+  const method = state?.method ?? 'GET';
+  const url = state?.url ?? '';
+  const params = state?.params ?? [];
+  const headers = state?.headers ?? [];
+  const body_type = state?.body_type ?? 'none';
+  const body_content = state?.body_content ?? '';
+
+  const jsonError = body_type === 'json' && body_content ? getJsonError(body_content) : null;
+  const paramsCount = params.filter(p => p.enabled && p.key).length;
+  const headersCount = headers.filter(h => h.enabled && h.key).length;
+
+  const formDataItems = useMemo(() => {
+    if (!body_content) return [];
+    const trimmed = body_content.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) return [];
+    try {
+      const urlParams = new URLSearchParams(body_content);
+      const items: KeyValue[] = [];
+      urlParams.forEach((value, key) => {
+        items.push({ key, value, enabled: true, description: '' });
+      });
+      return items;
+    } catch {
+      return [];
+    }
+  }, [body_content]);
+
   const handleMethodChange = useCallback((value: string | null) => {
     if (activeTabId && value) {
       updateTabState(activeTabId, { method: value as HttpMethod });
@@ -40,46 +68,42 @@ export function RequestPanel() {
 
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (activeTabId) {
-      const url = e.target.value;
-      updateTabState(activeTabId, { url });
-      
-      // Extract query params from URL
+      const newUrl = e.target.value;
+      updateTabState(activeTabId, { url: newUrl });
       try {
-        const urlObj = new URL(url);
-        const params: KeyValue[] = [];
+        const urlObj = new URL(newUrl);
+        const newParams: KeyValue[] = [];
         urlObj.searchParams.forEach((value, key) => {
-          params.push({ key, value, enabled: true });
+          newParams.push({ key, value, enabled: true });
         });
-        if (params.length > 0) {
-          updateTabState(activeTabId, { params });
+        if (newParams.length > 0) {
+          updateTabState(activeTabId, { params: newParams });
         }
       } catch {
-        // Invalid URL, ignore
+        // Invalid URL
       }
     }
   }, [activeTabId, updateTabState]);
 
-  const handleParamsChange = useCallback((params: KeyValue[]) => {
+  const handleParamsChange = useCallback((newParams: KeyValue[]) => {
     if (activeTabId && activeTab) {
-      updateTabState(activeTabId, { params });
-      
-      // Rebuild URL with new params
+      updateTabState(activeTabId, { params: newParams });
       try {
         const urlObj = new URL(activeTab.state.url);
         urlObj.search = '';
-        params.filter(p => p.enabled && p.key).forEach(p => {
+        newParams.filter(p => p.enabled && p.key).forEach(p => {
           urlObj.searchParams.append(p.key, p.value);
         });
         updateTabState(activeTabId, { url: urlObj.toString() });
       } catch {
-        // Invalid URL, just update params
+        // Invalid URL
       }
     }
   }, [activeTabId, activeTab, updateTabState]);
 
-  const handleHeadersChange = useCallback((headers: KeyValue[]) => {
+  const handleHeadersChange = useCallback((newHeaders: KeyValue[]) => {
     if (activeTabId) {
-      updateTabState(activeTabId, { headers });
+      updateTabState(activeTabId, { headers: newHeaders });
     }
   }, [activeTabId, updateTabState]);
 
@@ -97,7 +121,6 @@ export function RequestPanel() {
     const oldIsText = textTypes.includes(oldType);
     const newIsText = textTypes.includes(newBodyType);
     
-    // Clear content when switching between form and text types
     const shouldClear = (oldIsForm && newIsText) || (oldIsText && newIsForm);
     updateTabState(activeTabId, { 
       body_type: newBodyType, 
@@ -109,6 +132,15 @@ export function RequestPanel() {
     if (activeTabId) {
       updateTabState(activeTabId, { body_content: e.target.value });
     }
+  }, [activeTabId, updateTabState]);
+
+  const handleFormDataChange = useCallback((items: KeyValue[]) => {
+    if (!activeTabId) return;
+    const encoded = items
+      .filter(i => i.enabled && i.key)
+      .map(i => `${encodeURIComponent(i.key)}=${encodeURIComponent(i.value)}`)
+      .join('&');
+    updateTabState(activeTabId, { body_content: encoded });
   }, [activeTabId, updateTabState]);
 
   const handleFormatJson = useCallback(() => {
@@ -128,18 +160,14 @@ export function RequestPanel() {
     setResponse(activeTabId, null);
 
     try {
-      // Prepare headers - merge default headers with user headers
-      // User headers override default headers (case-insensitive)
       const userHeaders = headers.filter(h => h.enabled && h.key);
       const userHeaderKeys = new Set(userHeaders.map(h => h.key.toLowerCase()));
       
-      // Add default headers that aren't overridden
       const allHeaders = [
         ...DEFAULT_HEADERS.filter(h => !userHeaderKeys.has(h.key.toLowerCase())),
         ...userHeaders,
       ];
       
-      // Add Content-Type header if body type requires it
       if (body_type === 'json' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
         allHeaders.push({ key: 'Content-Type', value: 'application/json', enabled: true });
       } else if (body_type === 'x-www-form-urlencoded' && !allHeaders.some(h => h.key.toLowerCase() === 'content-type')) {
@@ -156,7 +184,6 @@ export function RequestPanel() {
 
       setResponse(activeTabId, response);
       
-      // Save to history (save user headers, not default headers)
       await api.createRequest({
         workspace_id: activeWorkspaceId,
         method,
@@ -173,9 +200,7 @@ export function RequestPanel() {
         response_size_bytes: response.size_bytes,
       });
       
-      // Refresh history to show new entry
       refreshHistory();
-      
       markClean(activeTabId);
     } catch (e) {
       console.error('Request failed:', e);
@@ -215,39 +240,6 @@ export function RequestPanel() {
       </div>
     );
   }
-
-  const { method, url, params, headers, body_type, body_content } = activeTab.state;
-  const jsonError = body_type === 'json' && body_content ? getJsonError(body_content) : null;
-
-  const paramsCount = params.filter(p => p.enabled && p.key).length;
-  const headersCount = headers.filter(h => h.enabled && h.key).length;
-
-  // Memoize form data parsing to prevent re-render loops
-  const formDataItems = useMemo(() => {
-    if (!body_content) return [];
-    const trimmed = body_content.trim();
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) return [];
-    try {
-      const urlParams = new URLSearchParams(body_content);
-      const items: KeyValue[] = [];
-      urlParams.forEach((value, key) => {
-        items.push({ key, value, enabled: true, description: '' });
-      });
-      return items;
-    } catch {
-      return [];
-    }
-  }, [body_content]);
-
-  const handleFormDataChange = useCallback((items: KeyValue[]) => {
-    const encoded = items
-      .filter(i => i.enabled && i.key)
-      .map(i => `${encodeURIComponent(i.key)}=${encodeURIComponent(i.value)}`)
-      .join('&');
-    if (activeTabId) {
-      updateTabState(activeTabId, { body_content: encoded });
-    }
-  }, [activeTabId, updateTabState]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -307,7 +299,7 @@ export function RequestPanel() {
         )}
       </div>
 
-      {/* Postman-style Tab Bar */}
+      {/* Tab Bar */}
       <div className="flex items-center border-b border-border bg-muted/30">
         <button
           type="button"
@@ -358,7 +350,7 @@ export function RequestPanel() {
         </button>
       </div>
 
-      {/* Body Type Selector - shown below tabs when Body is active */}
+      {/* Body Type Selector */}
       {activeRequestTab === 'body' && (
         <div className="flex items-center gap-3 px-3 py-2 border-b border-border bg-background">
           {BODY_TYPES.map(bt => (
@@ -404,7 +396,6 @@ export function RequestPanel() {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-auto">
-        {/* Params Tab */}
         {activeRequestTab === 'params' && (
           <div className="h-full">
             <KeyValueEditor
@@ -416,7 +407,6 @@ export function RequestPanel() {
           </div>
         )}
 
-        {/* Headers Tab */}
         {activeRequestTab === 'headers' && (
           <div className="h-full flex flex-col">
             <div className="flex-1">
@@ -428,7 +418,6 @@ export function RequestPanel() {
               />
             </div>
             
-            {/* Default Headers - collapsible */}
             <div className="border-t border-border p-3">
               <button
                 type="button"
@@ -456,7 +445,7 @@ export function RequestPanel() {
                     </div>
                   ))}
                   <p className="text-[10px] text-muted-foreground/70 mt-2">
-                    These headers are automatically included in all requests unless overridden above.
+                    These headers are automatically included unless overridden.
                   </p>
                 </div>
               )}
@@ -464,7 +453,6 @@ export function RequestPanel() {
           </div>
         )}
 
-        {/* Body Tab */}
         {activeRequestTab === 'body' && (
           <div className="h-full flex flex-col">
             {body_type === 'none' ? (
