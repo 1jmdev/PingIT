@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { useTabStore } from '@/stores/tabStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -83,11 +83,27 @@ export function RequestPanel() {
     }
   }, [activeTabId, updateTabState]);
 
-  const handleBodyTypeChange = useCallback((value: string | null) => {
-    if (activeTabId && value) {
-      updateTabState(activeTabId, { body_type: value as BodyType });
-    }
-  }, [activeTabId, updateTabState]);
+  const handleBodyTypeChange = useCallback((newType: string | null) => {
+    if (!activeTabId || !newType || !activeTab) return;
+    
+    const oldType = activeTab.state.body_type;
+    const newBodyType = newType as BodyType;
+    
+    const formTypes = ['form-data', 'x-www-form-urlencoded'];
+    const textTypes = ['raw', 'json', 'xml', 'html', 'text'];
+    
+    const oldIsForm = formTypes.includes(oldType);
+    const newIsForm = formTypes.includes(newBodyType);
+    const oldIsText = textTypes.includes(oldType);
+    const newIsText = textTypes.includes(newBodyType);
+    
+    // Clear content when switching between form and text types
+    const shouldClear = (oldIsForm && newIsText) || (oldIsText && newIsForm);
+    updateTabState(activeTabId, { 
+      body_type: newBodyType, 
+      body_content: shouldClear ? '' : activeTab.state.body_content 
+    });
+  }, [activeTabId, activeTab, updateTabState]);
 
   const handleBodyContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (activeTabId) {
@@ -205,6 +221,33 @@ export function RequestPanel() {
 
   const paramsCount = params.filter(p => p.enabled && p.key).length;
   const headersCount = headers.filter(h => h.enabled && h.key).length;
+
+  // Memoize form data parsing to prevent re-render loops
+  const formDataItems = useMemo(() => {
+    if (!body_content) return [];
+    const trimmed = body_content.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) return [];
+    try {
+      const urlParams = new URLSearchParams(body_content);
+      const items: KeyValue[] = [];
+      urlParams.forEach((value, key) => {
+        items.push({ key, value, enabled: true, description: '' });
+      });
+      return items;
+    } catch {
+      return [];
+    }
+  }, [body_content]);
+
+  const handleFormDataChange = useCallback((items: KeyValue[]) => {
+    const encoded = items
+      .filter(i => i.enabled && i.key)
+      .map(i => `${encodeURIComponent(i.key)}=${encodeURIComponent(i.value)}`)
+      .join('&');
+    if (activeTabId) {
+      updateTabState(activeTabId, { body_content: encoded });
+    }
+  }, [activeTabId, updateTabState]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -431,16 +474,8 @@ export function RequestPanel() {
             ) : body_type === 'form-data' || body_type === 'x-www-form-urlencoded' ? (
               <div className="flex-1 overflow-auto">
                 <KeyValueEditor
-                  items={body_content ? parseFormData(body_content) : []}
-                  onChange={(items: KeyValue[]) => {
-                    const encoded = items
-                      .filter((i: KeyValue) => i.enabled && i.key)
-                      .map((i: KeyValue) => `${encodeURIComponent(i.key)}=${encodeURIComponent(i.value)}`)
-                      .join('&');
-                    if (activeTabId) {
-                      updateTabState(activeTabId, { body_content: encoded });
-                    }
-                  }}
+                  items={formDataItems}
+                  onChange={handleFormDataChange}
                   keyPlaceholder="Field name"
                   valuePlaceholder="Value"
                 />
@@ -463,18 +498,4 @@ export function RequestPanel() {
       </div>
     </div>
   );
-}
-
-function parseFormData(encoded: string): KeyValue[] {
-  if (!encoded) return [];
-  try {
-    const params = new URLSearchParams(encoded);
-    const items: KeyValue[] = [];
-    params.forEach((value, key) => {
-      items.push({ key, value, enabled: true });
-    });
-    return items;
-  } catch {
-    return [];
-  }
 }
