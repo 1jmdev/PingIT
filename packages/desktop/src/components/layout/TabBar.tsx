@@ -46,7 +46,7 @@ export function TabBar() {
               key={tab.id}
               onClick={() => handleSelectTab(tab.id)}
               className={cn(
-                'group flex items-center gap-2 h-8 px-3 rounded-md text-sm transition-colors',
+                'group flex items-center gap-2 h-8 px-3 rounded-sm text-sm transition-colors',
                 'hover:bg-muted',
                 activeTabId === tab.id
                   ? 'bg-background border border-border shadow-sm'

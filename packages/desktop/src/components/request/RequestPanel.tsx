@@ -307,7 +307,7 @@ export function RequestPanel() {
         >
           Params
           {paramsCount > 0 && (
-            <span className="ml-1.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            <span className="ml-1.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">
               {paramsCount}
             </span>
           )}
@@ -324,7 +324,7 @@ export function RequestPanel() {
         >
           Headers
           {headersCount > 0 && (
-            <span className="ml-1.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            <span className="ml-1.5 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">
               {headersCount}
             </span>
           )}
@@ -388,9 +388,9 @@ export function RequestPanel() {
       )}
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto p-3">
         {activeRequestTab === 'params' && (
-          <div className="h-full">
+          <div className="h-full border border-border rounded-sm overflow-hidden min-h-[12rem]">
             <KeyValueEditor
               items={params}
               onChange={handleParamsChange}
@@ -401,8 +401,8 @@ export function RequestPanel() {
         )}
 
         {activeRequestTab === 'headers' && (
-          <div className="h-full flex flex-col">
-            <div className="flex-1">
+          <div className="h-full flex flex-col gap-3">
+            <div className="flex-1 border border-border rounded-sm overflow-hidden min-h-[12rem]">
               <KeyValueEditor
                 items={headers}
                 onChange={handleHeadersChange}
@@ -411,7 +411,7 @@ export function RequestPanel() {
               />
             </div>
             
-            <div className="border-t border-border p-3">
+            <div className="border border-border rounded-sm p-3">
               <button
                 type="button"
                 onClick={() => setShowDefaultHeaders(!showDefaultHeaders)}
@@ -449,11 +449,11 @@ export function RequestPanel() {
         {activeRequestTab === 'body' && (
           <div className="h-full flex flex-col">
             {body_type === 'none' ? (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm border border-border rounded-sm min-h-[12rem]">
                 This request does not have a body
               </div>
             ) : body_type === 'form-data' || body_type === 'x-www-form-urlencoded' ? (
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-auto border border-border rounded-sm min-h-[12rem]">
                 <KeyValueEditor
                   items={formDataItems}
                   onChange={handleFormDataChange}
@@ -462,7 +462,7 @@ export function RequestPanel() {
                 />
               </div>
             ) : (
-              <div className="flex-1 p-3 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-[12rem]">
                 <CodeEditor
                   value={body_content}
                   onChange={(value) => {

@@ -141,7 +141,7 @@ export function Sidebar() {
         
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="inline-flex items-center justify-center h-8 w-8 shrink-0 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="inline-flex items-center justify-center h-8 w-8 shrink-0 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
@@ -228,7 +228,7 @@ export function Sidebar() {
                 <button
                   key={request.id}
                   onClick={() => handleOpenRequest(request)}
-                  className="w-full text-left p-2 rounded-md hover:bg-muted transition-colors group"
+                  className="w-full text-left p-2 rounded-sm hover:bg-muted transition-colors group"
                 >
                   <div className="flex items-center gap-2">
                     <span className={cn('text-xs font-mono font-bold w-12', METHOD_COLORS[request.method])}>

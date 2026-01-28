@@ -75,7 +75,7 @@ const darkTheme = EditorView.theme({
     fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
     fontSize: '14px',
     padding: '8px 0',
-    caretColor: '#e5e5e5',
+    caretColor: '#f0f0f0',
   },
   '.cm-line': {
     padding: '0 10px',
@@ -83,13 +83,13 @@ const darkTheme = EditorView.theme({
   '.cm-gutters': {
     backgroundColor: 'transparent',
     border: 'none',
-    color: '#6e7681',
+    color: '#8a8a8a',
   },
   '.cm-activeLineGutter': {
     backgroundColor: 'transparent',
   },
   '.cm-activeLine': {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   '.cm-selectionBackground': {
     backgroundColor: 'rgba(59, 130, 246, 0.3) !important',
@@ -98,10 +98,10 @@ const darkTheme = EditorView.theme({
     backgroundColor: 'rgba(59, 130, 246, 0.4) !important',
   },
   '.cm-cursor': {
-    borderLeftColor: '#e5e5e5',
+    borderLeftColor: '#f0f0f0',
   },
   '.cm-placeholder': {
-    color: '#6e7681',
+    color: '#8a8a8a',
     fontStyle: 'normal',
   },
 }, { dark: true });
@@ -176,7 +176,7 @@ export function CodeEditor({
     <div
       ref={editorRef}
       className={cn(
-        'h-full overflow-auto rounded-md border bg-transparent',
+        'h-full overflow-auto rounded-sm border bg-transparent',
         hasError ? 'border-destructive' : 'border-input',
         className
       )}

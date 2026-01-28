@@ -57,7 +57,7 @@ export function ResponsePanel() {
         {isError ? (
           <span className="text-destructive font-medium">Error</span>
         ) : (
-          <span className={cn('px-2 py-0.5 rounded text-sm font-medium', getStatusColor(response.status))}>
+          <span className={cn('px-2 py-0.5 rounded-sm text-sm font-medium', getStatusColor(response.status))}>
             {response.status} {response.status_text}
           </span>
         )}
@@ -109,49 +109,53 @@ export function ResponsePanel() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="body" className="flex-1 overflow-hidden m-0">
-          {isError ? (
-            <div className="p-4 text-destructive text-sm whitespace-pre-wrap">
-              {response.body || 'Request failed'}
-            </div>
-          ) : isJson && parsedBody !== undefined ? (
-            <ScrollArea className="h-full">
-              <div className="p-4">
-                <JsonTreeViewer data={parsedBody} />
+        <TabsContent value="body" className="flex-1 overflow-hidden m-0 p-3">
+          <div className="h-full border border-border rounded-sm overflow-hidden min-h-[12rem]">
+            {isError ? (
+              <div className="p-4 text-destructive text-sm whitespace-pre-wrap">
+                {response.body || 'Request failed'}
               </div>
-            </ScrollArea>
-          ) : (
-            <ScrollArea className="h-full">
-              <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all">
-                {response.body}
-              </pre>
-            </ScrollArea>
-          )}
+            ) : isJson && parsedBody !== undefined ? (
+              <ScrollArea className="h-full">
+                <div className="p-4">
+                  <JsonTreeViewer data={parsedBody} />
+                </div>
+              </ScrollArea>
+            ) : (
+              <ScrollArea className="h-full">
+                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all">
+                  {response.body}
+                </pre>
+              </ScrollArea>
+            )}
+          </div>
         </TabsContent>
 
-        <TabsContent value="headers" className="flex-1 overflow-hidden m-0">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              {response.headers.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No headers</div>
-              ) : (
-                <table className="w-full text-sm">
-                  <tbody>
-                    {response.headers.map((header, i) => (
-                      <tr key={i} className="border-b border-border/50 last:border-0">
-                        <td className="py-1.5 pr-4 font-mono text-muted-foreground whitespace-nowrap">
-                          {header.key}
-                        </td>
-                        <td className="py-1.5 font-mono break-all">
-                          {header.value}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </ScrollArea>
+        <TabsContent value="headers" className="flex-1 overflow-hidden m-0 p-3">
+          <div className="h-full border border-border rounded-sm overflow-hidden min-h-[12rem]">
+            <ScrollArea className="h-full">
+              <div className="p-4">
+                {response.headers.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No headers</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {response.headers.map((header, i) => (
+                        <tr key={i} className="border-b border-border/50 last:border-0">
+                          <td className="py-1.5 pr-4 font-mono text-muted-foreground whitespace-nowrap">
+                            {header.key}
+                          </td>
+                          <td className="py-1.5 font-mono break-all">
+                            {header.value}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
