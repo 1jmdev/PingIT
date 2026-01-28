@@ -25,7 +25,7 @@ type RequestTab = 'params' | 'headers' | 'body';
 export function RequestPanel() {
   const { tabs, activeTabId, updateTabState, setResponse, setTabLoading, loadingTabs, markClean } = useTabStore();
   const { activeWorkspaceId } = useWorkspaceStore();
-  const { refreshHistory } = useUIStore();
+  const { addLatestRequest } = useUIStore();
   
   const activeTab = tabs.find(t => t.id === activeTabId);
   const isLoading = activeTabId ? loadingTabs.has(activeTabId) : false;
@@ -178,7 +178,7 @@ export function RequestPanel() {
 
       setResponse(activeTabId, response);
       
-      await api.createRequest({
+      const savedRequest = await api.createRequest({
         workspace_id: activeWorkspaceId,
         method,
         url,
@@ -194,7 +194,7 @@ export function RequestPanel() {
         response_size_bytes: response.size_bytes,
       });
       
-      refreshHistory();
+      addLatestRequest(savedRequest);
       markClean(activeTabId);
     } catch (e) {
       console.error('Request failed:', e);
@@ -209,7 +209,7 @@ export function RequestPanel() {
     } finally {
       setTabLoading(activeTabId, false);
     }
-  }, [activeTabId, activeTab, activeWorkspaceId, setTabLoading, setResponse, markClean, refreshHistory]);
+  }, [activeTabId, activeTab, activeWorkspaceId, setTabLoading, setResponse, markClean, addLatestRequest]);
 
   const handleCancelRequest = useCallback(async () => {
     if (activeTabId) {

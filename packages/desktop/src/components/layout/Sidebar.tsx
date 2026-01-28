@@ -36,7 +36,7 @@ import {
 export function Sidebar() {
   const { workspaces, activeWorkspaceId, setActiveWorkspace } = useWorkspaceStore();
   const { openRequest } = useTabStore();
-  const { historySearchQuery, setHistorySearchQuery, historyRefreshTrigger, openWorkspaceDialog, openClearHistoryDialog } = useUIStore();
+  const { historySearchQuery, setHistorySearchQuery, historyRefreshTrigger, latestRequest, openWorkspaceDialog, openClearHistoryDialog } = useUIStore();
   const { toggleSidebar } = useSettingsStore();
   
   const [history, setHistory] = useState<SavedRequest[]>([]);
@@ -64,6 +64,12 @@ export function Sidebar() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  useEffect(() => {
+    if (latestRequest && latestRequest.workspace_id === activeWorkspaceId) {
+      setHistory(prev => [latestRequest, ...prev]);
+    }
+  }, [latestRequest, activeWorkspaceId]);
 
   const handleOpenRequest = async (request: SavedRequest) => {
     if (!activeWorkspaceId) return;

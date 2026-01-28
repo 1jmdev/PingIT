@@ -1,9 +1,11 @@
 import { create } from 'zustand';
+import type { SavedRequest } from '@/types';
 
 interface UIState {
   // History panel
   historySearchQuery: string;
   historyRefreshTrigger: number;
+  latestRequest: SavedRequest | null;
   
   // Dialogs
   isSettingsOpen: boolean;
@@ -16,6 +18,8 @@ interface UIState {
   // Actions
   setHistorySearchQuery: (query: string) => void;
   refreshHistory: () => void;
+  addLatestRequest: (request: SavedRequest) => void;
+  clearLatestRequest: () => void;
   
   openSettings: () => void;
   closeSettings: () => void;
@@ -30,6 +34,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   historySearchQuery: '',
   historyRefreshTrigger: 0,
+  latestRequest: null,
   isSettingsOpen: false,
   isWorkspaceDialogOpen: false,
   workspaceDialogMode: 'create',
@@ -38,6 +43,8 @@ export const useUIStore = create<UIState>((set) => ({
 
   setHistorySearchQuery: (query: string) => set({ historySearchQuery: query }),
   refreshHistory: () => set(state => ({ historyRefreshTrigger: state.historyRefreshTrigger + 1 })),
+  addLatestRequest: (request: SavedRequest) => set({ latestRequest: request }),
+  clearLatestRequest: () => set({ latestRequest: null }),
 
   openSettings: () => set({ isSettingsOpen: true }),
   closeSettings: () => set({ isSettingsOpen: false }),
