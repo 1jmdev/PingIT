@@ -390,7 +390,7 @@ export function RequestPanel() {
       {/* Tab Content */}
       <div className="flex-1 overflow-auto p-3">
         {activeRequestTab === 'params' && (
-          <div className="h-full border border-border rounded-sm overflow-hidden min-h-[12rem]">
+          <div className="h-full border border-border rounded-sm overflow-hidden">
             <KeyValueEditor
               items={params}
               onChange={handleParamsChange}
@@ -402,7 +402,7 @@ export function RequestPanel() {
 
         {activeRequestTab === 'headers' && (
           <div className="h-full flex flex-col gap-3">
-            <div className="flex-1 border border-border rounded-sm overflow-hidden min-h-[12rem]">
+            <div className="flex-1 border border-border rounded-sm overflow-hidden">
               <KeyValueEditor
                 items={headers}
                 onChange={handleHeadersChange}
@@ -449,11 +449,11 @@ export function RequestPanel() {
         {activeRequestTab === 'body' && (
           <div className="h-full flex flex-col">
             {body_type === 'none' ? (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm border border-border rounded-sm min-h-[12rem]">
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm border border-border rounded-sm">
                 This request does not have a body
               </div>
             ) : body_type === 'form-data' || body_type === 'x-www-form-urlencoded' ? (
-              <div className="flex-1 overflow-auto border border-border rounded-sm min-h-[12rem]">
+              <div className="flex-1 overflow-auto border border-border rounded-sm">
                 <KeyValueEditor
                   items={formDataItems}
                   onChange={handleFormDataChange}
@@ -462,7 +462,7 @@ export function RequestPanel() {
                 />
               </div>
             ) : (
-              <div className="flex-1 overflow-hidden min-h-[12rem]">
+              <div className="flex-1 overflow-hidden">
                 <CodeEditor
                   value={body_content}
                   onChange={(value) => {

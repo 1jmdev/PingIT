@@ -52,11 +52,11 @@ export default function App() {
         <main className="flex flex-1 flex-col overflow-hidden">
           <TabBar />
           <ResizablePanelGroup orientation="vertical" className="flex-1">
-            <ResizablePanel defaultSize="50%" minSize="20%">
+            <ResizablePanel defaultSize={50} minSize={200}>
               <RequestPanel />
             </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize="50%" minSize="20%">
+            <ResizableHandle />
+            <ResizablePanel defaultSize={50} minSize={40}>
               <ResponsePanel />
             </ResizablePanel>
           </ResizablePanelGroup>

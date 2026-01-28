@@ -33,17 +33,27 @@ export function ResponsePanel() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="text-sm">Sending request...</span>
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="px-4 py-2 text-sm font-medium text-muted-foreground border-b border-border">
+          Response
+        </div>
+        <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground gap-3">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-sm">Sending request...</span>
+        </div>
       </div>
     );
   }
 
   if (!response) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <span className="text-sm">Send a request to see the response</span>
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="px-4 py-2 text-sm font-medium text-muted-foreground border-b border-border">
+          Response
+        </div>
+        <div className="flex items-center justify-center flex-1 text-muted-foreground">
+          <span className="text-sm">Send a request to see the response</span>
+        </div>
       </div>
     );
   }
@@ -110,7 +120,7 @@ export function ResponsePanel() {
         </TabsList>
 
         <TabsContent value="body" className="flex-1 overflow-hidden m-0 p-3">
-          <div className="h-full border border-border rounded-sm overflow-hidden min-h-[12rem]">
+          <div className="h-full border border-border rounded-sm overflow-hidden">
             {isError ? (
               <div className="p-4 text-destructive text-sm whitespace-pre-wrap">
                 {response.body || 'Request failed'}
@@ -132,7 +142,7 @@ export function ResponsePanel() {
         </TabsContent>
 
         <TabsContent value="headers" className="flex-1 overflow-hidden m-0 p-3">
-          <div className="h-full border border-border rounded-sm overflow-hidden min-h-[12rem]">
+          <div className="h-full border border-border rounded-sm overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-4">
                 {response.headers.length === 0 ? (
