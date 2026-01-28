@@ -65,7 +65,15 @@ export function TabBar() {
 
   return (
     <div className="flex items-center h-10 border-b border-border bg-muted/30">
-      <div ref={scrollRef} className="flex-1 overflow-hidden" onWheel={handleWheel}>
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-hidden"
+        onWheel={handleWheel}
+        style={{
+          maskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 32px), transparent 100%)',
+        }}
+      >
         <ScrollArea>
           <div className="flex items-center h-10 px-1 min-w-max">
             {tabs.map((tab) => (
