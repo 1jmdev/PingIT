@@ -29,9 +29,10 @@ export function TabBar() {
     if (tab.state.url) {
       try {
         const url = new URL(tab.state.url);
-        return url.pathname || '/';
+        let label = url.host + url.pathname + (url.search || '');
+        return label.replace(/\/+$/, '');
       } catch {
-        return tab.state.url.slice(0, 30) || 'New Request';
+        return tab.state.url.replace(/^https?:\/\//, '').replace(/\/+$/, '') || 'New Request';
       }
     }
     return 'New Request';
@@ -46,26 +47,26 @@ export function TabBar() {
               key={tab.id}
               onClick={() => handleSelectTab(tab.id)}
               className={cn(
-                'group flex items-center gap-2 h-8 px-3 rounded-sm text-sm transition-colors',
+                'group flex items-center gap-2 h-8 w-48 px-3 rounded-sm text-sm transition-colors shrink-0',
                 'hover:bg-muted',
                 activeTabId === tab.id
                   ? 'bg-background border border-border shadow-sm'
                   : 'text-muted-foreground'
               )}
             >
-              <span className={cn('font-mono text-xs font-bold', METHOD_COLORS[tab.state.method])}>
+              <span className={cn('font-mono text-xs font-bold shrink-0', METHOD_COLORS[tab.state.method])}>
                 {tab.state.method}
               </span>
-              <span className="max-w-[120px] truncate text-xs">
+              <span className="flex-1 min-w-0 text-xs truncate" style={{ maskImage: 'linear-gradient(to right, black 75%, transparent 95%)', WebkitMaskImage: 'linear-gradient(to right, black 75%, transparent 95%)' }}>
                 {getTabLabel(tab)}
               </span>
               {tab.state.is_dirty && (
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
               )}
               <button
                 onClick={(e) => handleCloseTab(e, tab.id)}
                 className={cn(
-                  'ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity',
+                  'ml-1 p-0.5 rounded shrink-0',
                   'hover:bg-muted-foreground/20'
                 )}
               >
