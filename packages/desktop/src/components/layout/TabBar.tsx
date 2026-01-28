@@ -6,15 +6,23 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, Search } from 'lucide-react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Copy, FolderX, Layers } from 'lucide-react';
 import { METHOD_COLORS } from '@/lib/constants';
 
 export function TabBar() {
   const { activeWorkspaceId } = useWorkspaceStore();
-  const { tabs, activeTabId, createTab, closeTab, setActiveTab } = useTabStore();
+  const { tabs, activeTabId, createTab, duplicateTab, closeTab, setActiveTab } = useTabStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    tabId: string | null;
+  }>({ show: false, x: 0, y: 0, tabId: null });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -28,6 +36,43 @@ export function TabBar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        handleNewTab();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeWorkspaceId]);
+
+  // Handle context menu
+  const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      show: true,
+      x: e.clientX,
+      y: e.clientY,
+      tabId,
+    });
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenu(prev => ({ ...prev, show: false }));
+    };
+
+    if (contextMenu.show) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu.show]);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (e.shiftKey) return;
@@ -60,6 +105,39 @@ export function TabBar() {
   const handleCloseTab = async (e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
     await closeTab(tabId);
+  };
+
+  const handleDuplicateTab = async (tabId: string) => {
+    if (!activeWorkspaceId) return;
+    
+    await duplicateTab(activeWorkspaceId, tabId);
+    setContextMenu(prev => ({ ...prev, show: false }));
+  };
+
+  const handleCloseOtherTabs = async (tabId: string) => {
+    const tabsToClose = tabs.filter(t => t.id !== tabId);
+    for (const tab of tabsToClose) {
+      await closeTab(tab.id);
+    }
+    setContextMenu(prev => ({ ...prev, show: false }));
+  };
+
+  const handleCloseAllTabs = async () => {
+    for (const tab of tabs) {
+      await closeTab(tab.id);
+    }
+    setContextMenu(prev => ({ ...prev, show: false }));
+  };
+
+  const handleNewRequest = async () => {
+    if (!activeWorkspaceId) return;
+    await createTab(activeWorkspaceId);
+    setContextMenu(prev => ({ ...prev, show: false }));
+  };
+
+  const handleCloseTabFromContext = async (tabId: string) => {
+    await closeTab(tabId);
+    setContextMenu(prev => ({ ...prev, show: false }));
   };
 
   const handleSelectTab = async (tabId: string) => {
@@ -104,6 +182,7 @@ export function TabBar() {
               <button
                 key={tab.id}
                 onClick={() => handleSelectTab(tab.id)}
+                onContextMenu={(e) => handleContextMenu(e, tab.id)}
                 className={cn(
                   'group flex items-center gap-2 h-8 w-48 px-3 rounded-sm text-sm transition-colors shrink-0',
                   'hover:bg-muted',
@@ -200,6 +279,59 @@ export function TabBar() {
               )}
             </div>
           </ScrollArea>
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu.show && (
+        <div
+          className="fixed z-50 min-w-[200px] bg-background border border-border rounded-lg shadow-lg overflow-hidden"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="py-1">
+            <button
+              onClick={handleNewRequest}
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Request
+              <span className="ml-auto text-xs text-muted-foreground">Ctrl+T</span>
+            </button>
+            {contextMenu.tabId && (
+              <>
+                <button
+                  onClick={() => handleDuplicateTab(contextMenu.tabId!)}
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Duplicate Tab
+                </button>
+                <div className="border-t border-border my-1" />
+                <button
+                  onClick={() => handleCloseTabFromContext(contextMenu.tabId!)}
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Close Tab
+                </button>
+                <button
+                  onClick={() => handleCloseOtherTabs(contextMenu.tabId!)}
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                >
+                  <FolderX className="h-4 w-4" />
+                  Close Other Tabs
+                </button>
+                <button
+                  onClick={handleCloseAllTabs}
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                >
+                  <Layers className="h-4 w-4" />
+                  Close All Tabs
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

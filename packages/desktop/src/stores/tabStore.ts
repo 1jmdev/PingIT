@@ -15,6 +15,7 @@ interface TabStore {
   // Actions
   loadTabs: (workspaceId: string) => Promise<void>;
   createTab: (workspaceId: string) => Promise<Tab>;
+  duplicateTab: (workspaceId: string, tabId: string) => Promise<Tab>;
   closeTab: (tabId: string) => Promise<void>;
   setActiveTab: (workspaceId: string, tabId: string) => Promise<void>;
   updateTabState: (tabId: string, updates: Partial<TabState>) => void;
@@ -100,6 +101,41 @@ export const useTabStore = create<TabStore>((set, get) => ({
         activeTabId: newTab.id,
       };
     });
+    
+    return newTab;
+  },
+
+  duplicateTab: async (workspaceId: string, tabId: string) => {
+    const { tabs } = get();
+    const sourceTab = tabs.find(t => t.id === tabId);
+    
+    if (!sourceTab) {
+      throw new Error('Source tab not found');
+    }
+    
+    // Create a new tab with the duplicated state without response
+    const newTab = await api.createTab(workspaceId, {
+      ...sourceTab.state,
+      is_dirty: false,
+    });
+    
+    set(state => {
+      let tabs = [...state.tabs, newTab];
+      
+      // Enforce memory limit - remove oldest inactive tabs
+      if (tabs.length > MAX_TABS_IN_MEMORY) {
+        const activeTabs = tabs.filter(t => t.id === newTab.id || t.is_active);
+        const inactiveTabs = tabs.filter(t => t.id !== newTab.id && !t.is_active);
+        tabs = [...activeTabs, ...inactiveTabs.slice(-(MAX_TABS_IN_MEMORY - activeTabs.length))];
+      }
+      
+      return {
+        tabs,
+        activeTabId: newTab.id,
+      };
+    });
+
+    await api.updateTab(newTab.id, sourceTab.state, sourceTab.request_id ?? undefined);
     
     return newTab;
   },

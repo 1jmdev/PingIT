@@ -7,8 +7,15 @@
     <title>Tauri + React + Typescript</title>
   </head>
 
-  <body>
+<body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Disable default context menu globally for Tauri
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      }, { capture: true });
+    </script>
   </body>
 </html>
