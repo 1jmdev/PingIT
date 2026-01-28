@@ -12,7 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "PingIt"
+        "title": "PingIt",
+        "decorations": false,
+        "resizable": true
       }
     ],
     "security": {
