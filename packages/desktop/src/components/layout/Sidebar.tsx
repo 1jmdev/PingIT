@@ -127,7 +127,7 @@ export function Sidebar() {
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
   return (
-    <aside className="flex flex-col w-72 border-r border-border bg-muted/30">
+    <aside className="flex flex-col h-full w-72 border-r border-border bg-muted/30">
       {/* Workspace selector */}
       <div className="flex items-center gap-2 p-3 border-b border-border">
         <Select value={activeWorkspaceId ?? ''} onValueChange={handleWorkspaceChange}>
