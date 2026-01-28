@@ -85,6 +85,7 @@ export function Sidebar() {
     } : null;
     
     await openRequest(activeWorkspaceId, {
+      id: request.id,
       method: request.method,
       url: request.url,
       params: request.params,

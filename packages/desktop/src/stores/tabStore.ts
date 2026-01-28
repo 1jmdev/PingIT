@@ -29,6 +29,7 @@ interface TabStore {
   
   // Open request from history
   openRequest: (workspaceId: string, request: {
+    id?: string;
     method: HttpMethod;
     url: string;
     params: Array<{ key: string; value: string; enabled: boolean }> | null;
@@ -212,6 +213,58 @@ export const useTabStore = create<TabStore>((set, get) => ({
   },
 
   openRequest: async (workspaceId: string, request, response?) => {
+    // If an ID is provided, check if tab with that request_id already exists in database
+    if (request.id) {
+      try {
+        const allTabs = await api.getTabsByWorkspace(workspaceId);
+        const existingTab = allTabs.find(tab => tab.request_id === request.id);
+
+        if (existingTab) {
+          // Tab exists, activate it instead of creating a new one
+          await api.setActiveTab(workspaceId, existingTab.id);
+
+          // If the tab is not in memory, load it
+          const { tabs } = get();
+          const tabInMemory = tabs.find(tab => tab.id === existingTab.id);
+
+          if (!tabInMemory) {
+            // Add the tab to memory and enforce memory limit
+            set(state => {
+              let newTabs = [...state.tabs, existingTab];
+
+              // Enforce memory limit - remove oldest inactive tabs
+              if (newTabs.length > MAX_TABS_IN_MEMORY) {
+                const activeTabs = newTabs.filter(t => t.id === existingTab.id || t.is_active);
+                const inactiveTabs = newTabs.filter(t => t.id !== existingTab.id && !t.is_active);
+                newTabs = [...activeTabs, ...inactiveTabs.slice(-(MAX_TABS_IN_MEMORY - activeTabs.length))];
+              }
+
+              return {
+                tabs: newTabs,
+                activeTabId: existingTab.id,
+              };
+            });
+          } else {
+            // Tab is already in memory, just set it as active
+            set({ activeTabId: existingTab.id });
+          }
+
+          // Update response data if provided
+          if (response) {
+            set(state => ({
+              responses: { ...state.responses, [existingTab.id]: response }
+            }));
+          }
+
+          return existingTab;
+        }
+      } catch (e) {
+        console.error('Failed to check existing tab:', e);
+        // Continue with creating new tab if check fails
+      }
+    }
+
+    // Create new tab if no ID provided or tab doesn't exist
     const tabState: TabState = {
       method: request.method,
       url: request.url,
@@ -223,7 +276,13 @@ export const useTabStore = create<TabStore>((set, get) => ({
     };
 
     const newTab = await api.createTab(workspaceId, tabState);
-    
+
+    // If we have a request ID, associate the tab with the saved request
+    if (request.id) {
+      await api.updateTab(newTab.id, newTab.state, request.id);
+      newTab.request_id = request.id;
+    }
+
     set(state => ({
       tabs: [...state.tabs, newTab].slice(-MAX_TABS_IN_MEMORY),
       activeTabId: newTab.id,
