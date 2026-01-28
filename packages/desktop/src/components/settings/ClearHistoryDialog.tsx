@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
 export function ClearHistoryDialog() {
-  const { isClearHistoryDialogOpen, closeClearHistoryDialog } = useUIStore();
+  const { isClearHistoryDialogOpen, closeClearHistoryDialog, clearHistory } = useUIStore();
   const { activeWorkspaceId, workspaces } = useWorkspaceStore();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +29,7 @@ export function ClearHistoryDialog() {
     try {
       await api.clearWorkspaceHistory(activeWorkspaceId);
       closeClearHistoryDialog();
-      // Refresh the page to reload history
-      window.location.reload();
+      clearHistory();
     } catch (e) {
       console.error('Failed to clear history:', e);
     } finally {

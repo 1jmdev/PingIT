@@ -20,6 +20,7 @@ interface UIState {
   refreshHistory: () => void;
   addLatestRequest: (request: SavedRequest) => void;
   clearLatestRequest: () => void;
+  clearHistory: () => void;
   
   openSettings: () => void;
   closeSettings: () => void;
@@ -45,6 +46,7 @@ export const useUIStore = create<UIState>((set) => ({
   refreshHistory: () => set(state => ({ historyRefreshTrigger: state.historyRefreshTrigger + 1 })),
   addLatestRequest: (request: SavedRequest) => set({ latestRequest: request }),
   clearLatestRequest: () => set({ latestRequest: null }),
+  clearHistory: () => set(state => ({ historyRefreshTrigger: state.historyRefreshTrigger + 1, latestRequest: null })),
 
   openSettings: () => set({ isSettingsOpen: true }),
   closeSettings: () => set({ isSettingsOpen: false }),
